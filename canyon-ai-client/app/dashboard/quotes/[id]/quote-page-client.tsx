@@ -5,6 +5,9 @@ import { Quote } from '@/lib/supabase/quotes'
 import { ApprovalFlowChart } from '@/components/approval-flow-chart'
 import { InlineEditableText, InlineEditableSelect } from '@/components/inline-editable'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { FileText, Download, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface QuotePageClientProps {
@@ -105,6 +108,67 @@ export function QuotePageClient({ quote: initialQuote }: QuotePageClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Order Form Section */}
+      {quote.generated_order_form_url && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Order Form
+            </CardTitle>
+            <CardDescription>
+              Generated proposal document for this quote
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Business Proposal</p>
+                  <p className="text-xs text-muted-foreground">
+                    Generated on {new Date(quote.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (quote.generated_order_form_url?.startsWith('http')) {
+                      window.open(quote.generated_order_form_url, '_blank')
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Preview
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (quote.generated_order_form_url?.startsWith('http')) {
+                      const link = document.createElement('a')
+                      link.href = quote.generated_order_form_url
+                      link.download = `${quote.name}_proposal.pdf`
+                      link.target = '_blank'
+                      link.click()
+                    }
+                  }}
+                  className="text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Approval Flow Chart */}
       <div className="space-y-4">

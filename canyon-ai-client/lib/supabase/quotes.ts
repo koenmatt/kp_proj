@@ -10,6 +10,7 @@ export interface Quote {
   amount: string
   owner: string
   current_stage?: string
+  generated_order_form_url?: string
 }
 
 export async function getUserQuotes(): Promise<Quote[]> {
@@ -35,7 +36,7 @@ export async function getUserQuotes(): Promise<Quote[]> {
   return data || []
 }
 
-export async function createQuote(quoteData: Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner'>) {
+export async function createQuote(quoteData: Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner'> & Partial<Pick<Quote, 'generated_order_form_url'>>) {
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()

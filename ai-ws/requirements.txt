@@ -5,3 +5,6 @@ httpx
 pydantic
 python-multipart
 python-dotenv
+reportlab
+supabase
+Pillow

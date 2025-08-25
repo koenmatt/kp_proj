@@ -3,13 +3,23 @@ import json
 import os
 import uuid
 from typing import Dict, List
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from datetime import datetime, timedelta
+import io
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import httpx
 from pydantic import BaseModel
 import logging
 import xml.etree.ElementTree as ET
 import re
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from supabase import create_client, Client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +75,15 @@ if not OPENAI_API_KEY:
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
+# Supabase configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    logger.warning("Supabase configuration not found in environment variables")
+    supabase_client = None
+else:
+    supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
 def load_system_prompt() -> str:
     """Load the system prompt from prompt.txt file"""
     try:
@@ -119,6 +138,302 @@ def extract_tool_calls(text: str) -> List[Dict]:
     
     return tool_calls
 
+async def generate_quote_content_with_llm(parameters: Dict) -> Dict:
+    """Use LLM to generate detailed quote content"""
+    if not OPENAI_API_KEY:
+        return {
+            "product_description": parameters.get('product', 'Product'),
+            "unit_price": 100.0,
+            "total_price": float(parameters.get('quantity', 1)) * 100.0,
+            "terms": "Standard terms and conditions apply."
+        }
+    
+    prompt = f"""
+    Generate a realistic business quote for the following request:
+    - Customer: {parameters.get('customer_name', 'Customer')}
+    - Product: {parameters.get('product', 'Software License')}
+    - Quantity: {parameters.get('quantity', '1')}
+    - Discount: {parameters.get('discount', 'None')}
+    - Requirements: {parameters.get('requirements', 'Standard requirements')}
+    
+    Provide a JSON response with:
+    - product_description: Concise description (max 100 words) of the product/service
+    - unit_price: Realistic unit price in USD (between $50-$500 for software licenses)
+    - total_price: Total price after discount in USD (numeric value only)
+    - terms: Brief professional terms (2-3 sentences)
+    - additional_notes: Short benefits summary (2-3 sentences)
+    
+    Keep pricing realistic for B2B software (not millions of dollars). Make descriptions concise and professional.
+    """
+    
+    try:
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 500
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(OPENAI_API_URL, json=payload, headers=headers)
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content']
+                
+                # Try to parse JSON from the response
+                try:
+                    import json
+                    # Clean the content - sometimes LLM adds markdown formatting
+                    clean_content = content.strip()
+                    if clean_content.startswith('```json'):
+                        clean_content = clean_content.replace('```json', '').replace('```', '').strip()
+                    elif clean_content.startswith('```'):
+                        clean_content = clean_content.replace('```', '').strip()
+                    
+                    quote_data = json.loads(clean_content)
+                    
+                    # Validate required fields and convert strings to numbers if needed
+                    if 'unit_price' in quote_data:
+                        quote_data['unit_price'] = float(str(quote_data['unit_price']).replace('$', '').replace(',', ''))
+                    if 'total_price' in quote_data:
+                        quote_data['total_price'] = float(str(quote_data['total_price']).replace('$', '').replace(',', ''))
+                    
+                    return quote_data
+                except (json.JSONDecodeError, ValueError, KeyError) as e:
+                    # Fallback if JSON parsing fails
+                    logger.warning(f"Failed to parse LLM response as JSON ({e}), using fallback. Content: {content[:200]}...")
+                    
+                    # Calculate prices manually with realistic values
+                    quantity = float(parameters.get('quantity', 1))
+                    unit_price = 199.0  # More reasonable base price
+                    discount_pct = 0
+                    if parameters.get('discount'):
+                        try:
+                            discount_pct = float(parameters.get('discount', '0').replace('%', '')) / 100
+                        except ValueError:
+                            discount_pct = 0
+                    
+                    total_price = quantity * unit_price * (1 - discount_pct)
+                    
+                    return {
+                        "product_description": f"Professional {parameters.get('product', 'Software License')} designed for enterprise organizations. Includes standard features and basic support.",
+                        "unit_price": unit_price,
+                        "total_price": total_price,
+                        "terms": "Payment due within 30 days. One year warranty included.",
+                        "additional_notes": "Professional implementation support available. Regular updates included in first year."
+                    }
+    except Exception as e:
+        logger.error(f"Error generating quote content with LLM: {e}")
+        return {
+            "product_description": f"Professional {parameters.get('product', 'Software License')}",
+            "unit_price": 100.0,
+            "total_price": float(parameters.get('quantity', 1)) * 100.0,
+            "terms": "Standard terms and conditions apply.",
+            "additional_notes": "Professional service delivery."
+        }
+
+def create_quote_pdf(parameters: Dict, quote_content: Dict, quote_id: str) -> bytes:
+    """Create a professionally styled PDF quote"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72,
+                           topMargin=72, bottomMargin=18)
+    
+    # Get styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#2c3e50')
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=16,
+        spaceAfter=12,
+        textColor=colors.HexColor('#34495e')
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=11,
+        spaceAfter=6
+    )
+    
+    # Build the PDF content
+    story = []
+    
+    # Header
+    story.append(Paragraph("BUSINESS PROPOSAL", title_style))
+    story.append(Spacer(1, 20))
+    
+    # Quote details
+    quote_info = [
+        ['Proposal ID:', quote_id[:8].upper()],  # Shorter, cleaner ID
+        ['Date:', datetime.now().strftime('%B %d, %Y')],
+        ['Customer:', parameters.get('customer_name', 'Customer')],
+        ['Valid Until:', (datetime.now() + timedelta(days=30)).strftime('%B %d, %Y')]
+    ]
+    
+    info_table = Table(quote_info, colWidths=[2*inch, 3*inch])
+    info_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 30))
+    
+    # Product details
+    story.append(Paragraph("PROPOSAL DETAILS", heading_style))
+    
+    # Create description as a Paragraph for proper text wrapping
+    description_text = quote_content.get('product_description', parameters.get('product', 'Product'))
+    # Limit description length for better formatting
+    if len(description_text) > 150:
+        description_text = description_text[:150] + "..."
+    
+    description_para = Paragraph(description_text, normal_style)
+    
+    product_data = [
+        ['Description', 'Qty', 'Unit Price', 'Subtotal'],
+        [
+            description_para,
+            str(parameters.get('quantity', '1')),
+            f"${quote_content.get('unit_price', 100):.2f}",
+            f"${float(parameters.get('quantity', 1)) * quote_content.get('unit_price', 100):.2f}"
+        ]
+    ]
+    
+    if parameters.get('discount') and parameters.get('discount') != 'None':
+        discount_amount = float(parameters.get('quantity', 1)) * quote_content.get('unit_price', 100) - quote_content.get('total_price', 100)
+        product_data.append([
+            Paragraph(f"Discount ({parameters.get('discount')})", normal_style),
+            '',
+            '',
+            f"-${discount_amount:.2f}"
+        ])
+    
+    # Adjusted column widths for better fit
+    product_table = Table(product_data, colWidths=[3.5*inch, 0.7*inch, 1*inch, 1.1*inch])
+    product_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Description column left-aligned
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Vertical alignment
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8f9fa')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#f8f9fa'), colors.white]),
+    ]))
+    story.append(product_table)
+    story.append(Spacer(1, 30))
+    
+    # Total
+    total_data = [
+        ['TOTAL AMOUNT:', f"${quote_content.get('total_price', 100):,.2f}"]
+    ]
+    total_table = Table(total_data, colWidths=[4.6*inch, 1.4*inch])
+    total_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 16),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e3f2fd')),
+        ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1976d2')),
+        ('TOPPADDING', (0, 0), (-1, -1), 15),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+    ]))
+    story.append(total_table)
+    story.append(Spacer(1, 30))
+    
+    # Terms and conditions
+    story.append(Paragraph("TERMS & CONDITIONS", heading_style))
+    story.append(Paragraph(quote_content.get('terms', 'Standard terms and conditions apply.'), normal_style))
+    
+    if quote_content.get('additional_notes'):
+        story.append(Spacer(1, 15))
+        story.append(Paragraph("BENEFITS & NOTES", heading_style))
+        story.append(Paragraph(quote_content.get('additional_notes'), normal_style))
+    
+    # Footer
+    story.append(Spacer(1, 40))
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=TA_CENTER,
+        textColor=colors.grey
+    )
+    story.append(Paragraph("Thank you for considering our proposal. We look forward to working with you!", footer_style))
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+async def upload_pdf_to_supabase(pdf_bytes: bytes, filename: str) -> str:
+    """Upload PDF to Supabase storage and return presigned URL"""
+    if not supabase_client:
+        # Fallback for development - save locally and serve via FastAPI
+        logger.warning("Supabase not configured, saving locally and serving via FastAPI")
+        
+        # Create temp directory if it doesn't exist
+        temp_dir = os.path.join(os.path.dirname(__file__), "temp_pdfs")
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Save PDF locally
+        local_file_path = os.path.join(temp_dir, filename)
+        with open(local_file_path, "wb") as f:
+            f.write(pdf_bytes)
+        
+        # Return local server URL
+        return f"http://localhost:8000/download/{filename}"
+    
+    try:
+        # Upload to Supabase storage with proper content type
+        result = supabase_client.storage.from_("quotes").upload(
+            filename, 
+            pdf_bytes,
+            file_options={
+                "content-type": "application/pdf",
+                "cache-control": "3600"
+            }
+        )
+        
+        if result:
+            # Create a presigned URL that expires in 1 hour
+            signed_url_result = supabase_client.storage.from_("quotes").create_signed_url(filename, 3600)
+            
+            if signed_url_result and 'signedURL' in signed_url_result:
+                return signed_url_result['signedURL']
+            else:
+                logger.error("Failed to create signed URL")
+                return f"https://supabase-fallback.com/quotes/{filename}"
+        else:
+            logger.error("Failed to upload PDF to Supabase")
+            return f"https://supabase-fallback.com/quotes/{filename}"
+            
+    except Exception as e:
+        logger.error(f"Error uploading to Supabase: {e}")
+        return f"https://supabase-fallback.com/quotes/{filename}"
+
 async def execute_tool(tool_call: Dict, client_id: str) -> Dict:
     """Execute a tool call and return the result"""
     tool_name = tool_call['tool_name']
@@ -136,33 +451,49 @@ async def execute_tool(tool_call: Dict, client_id: str) -> Dict:
         }
 
 async def execute_generate_quote(parameters: Dict, client_id: str) -> Dict:
-    """Execute the generate_quote tool"""
+    """Execute the generate_quote tool with real PDF generation"""
     logger.info(f"Executing generate_quote for client {client_id}")
     logger.info(f"Parameters: {parameters}")
-    # Send status message to client
-    status_msg = {
-        "type": "tool_status",
-        "tool_name": "generate_quote",
-        "status": "Generating Quote",
-        "message": "Creating your quote document..."
-    }
-    await manager.send_personal_message(json.dumps(status_msg), client_id)
     
-    # Simulate processing time
-    await asyncio.sleep(10)
-    
-    # Generate a mock file path
-    quote_id = str(uuid.uuid4())
-    file_path = f"/quotes/{quote_id}/quote_document.pdf"
-    # Return completion result
-    return {
-        'success': True,
-        'tool_name': 'generate_quote',
-        'file_path': file_path,
-        'quote_id': quote_id,
-        'customer_name': parameters.get('customer_name', 'Unknown'),
-        'quote_name': parameters.get('quote_name', 'Quote Document')
-    }
+    try:
+        # Generate quote ID
+        quote_id = str(uuid.uuid4())
+        
+        # Step 1: Generate quote content using LLM
+        logger.info("Generating quote content with LLM...")
+        quote_content = await generate_quote_content_with_llm(parameters)
+        logger.info(f"Generated quote content: {quote_content}")
+        
+        # Step 2: Create PDF
+        logger.info("Creating PDF document...")
+        pdf_bytes = create_quote_pdf(parameters, quote_content, quote_id)
+        logger.info(f"Created PDF with {len(pdf_bytes)} bytes")
+        
+        # Step 3: Upload to Supabase and get presigned URL
+        filename = f"{quote_id}_quote_{parameters.get('customer_name', 'customer').replace(' ', '_')}.pdf"
+        logger.info(f"Uploading to Supabase as {filename}...")
+        presigned_url = await upload_pdf_to_supabase(pdf_bytes, filename)
+        logger.info(f"Upload complete, presigned URL: {presigned_url}")
+        
+        # Return completion result
+        return {
+            'success': True,
+            'tool_name': 'generate_quote',
+            'file_path': presigned_url,  # Now a presigned URL ready for download
+            'quote_id': quote_id,
+            'customer_name': parameters.get('customer_name', 'Unknown'),
+            'quote_name': parameters.get('quote_name', 'Quote Document'),
+            'filename': filename,
+            'total_amount': quote_content.get('total_price', 0)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating quote: {e}")
+        return {
+            'success': False,
+            'tool_name': 'generate_quote',
+            'error': f"Failed to generate quote: {str(e)}"
+        }
 
 async def execute_create_approval_flow(parameters: Dict, client_id: str) -> Dict:
     """Execute the create_approval_flow tool"""

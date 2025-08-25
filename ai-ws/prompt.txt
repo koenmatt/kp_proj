@@ -36,15 +36,17 @@ You MUST use the following XML tools when users request quote generation or appr
 - ANY time a user asks to create an approval workflow or process → Use create_approval_flow tool
 
 ### Generate Quote Tool:
-When a user requests quote creation, you MUST respond with normal conversation AND include this XML:
+When a user requests quote creation (e.g., "Customer A wants 100 seats of product X with 25% discount"), you MUST respond with normal conversation AND include this XML:
 
 <tool_call>
 <tool_name>generate_quote</tool_name>
 <parameters>
 <customer_name>Customer Name</customer_name>
 <quote_name>Quote Name/Description</quote_name>
-<amount>Dollar amount (if provided)</amount>
-<requirements>Detailed requirements or description</requirements>
+<product>Product or service being quoted</product>
+<quantity>Number of units/seats</quantity>
+<discount>Discount percentage or amount</discount>
+<requirements>Additional requirements or special terms</requirements>
 </parameters>
 </tool_call>
 
@@ -62,16 +64,18 @@ When a user requests approval workflow creation, you MUST respond with normal co
 </tool_call>
 
 ### Example Response Format:
-User: "Create a quote for John Smith for $5000"
-Your Response: "I'll create that quote for John Smith right away! Let me generate the quote document for you.
+User: "Customer A wants 100 seats of product X with 25% discount"
+Your Response: "I'll create that quote for Customer A right away! Let me generate a detailed quote document for 100 seats of Product X with the 25% discount applied.
 
 <tool_call>
 <tool_name>generate_quote</tool_name>
 <parameters>
-<customer_name>John Smith</customer_name>
-<quote_name>Service Quote</quote_name>
-<amount>$5000</amount>
-<requirements>Standard service quote</requirements>
+<customer_name>Customer A</customer_name>
+<quote_name>Product X Enterprise License Quote</quote_name>
+<product>Product X Enterprise License</product>
+<quantity>100</quantity>
+<discount>25%</discount>
+<requirements>Enterprise licensing for 100 users</requirements>
 </parameters>
 </tool_call>
 

@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Check, Clock, User, Calendar as CalendarIcon, ChevronRight, GripVertical, Trash2, ArrowUp, ArrowDown, Move, Users, Shield, DollarSign, FileText, Building2, UserCheck, Upload, BarChart3, TrendingUp, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -750,41 +751,127 @@ export function ApprovalFlowChart({ className, quoteId }: ApprovalFlowChartProps
 
       {/* Upload and Stats Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* File Upload Section */}
+        {/* Team Members Section */}
         <div className="bg-white border rounded-lg p-6">
           <div className="space-y-6">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-gray-900">Order Form</h3>
-              <p className="text-sm text-muted-foreground">Upload the order form for this approval workflow</p>
+              <h3 className="text-lg font-semibold text-gray-900">Project Team</h3>
+              <p className="text-sm text-muted-foreground">Key team members assigned to this project</p>
             </div>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors group cursor-pointer">
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-gray-200 transition-colors">
-                  <Upload size={24} className="text-gray-600" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-900">Click to upload or drag and drop</p>
-                  <p className="text-xs text-muted-foreground">PDF, DOC, DOCX up to 10MB</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Current file:</span>
-                <span className="text-gray-900 font-medium">order-form-2024.pdf</span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <FileText size={16} className="mr-2" />
-                  View
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Trash2 size={16} className="mr-2" />
-                  Remove
-                </Button>
-              </div>
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Experience</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-blue-100 text-blue-700">SA</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">Sarah Anderson</p>
+                          <p className="text-xs text-muted-foreground">sarah.a@company.com</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">Project Manager</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">8 years</TableCell>
+                    <TableCell className="text-right">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Available</Badge>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-purple-100 text-purple-700">MC</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">Michael Chen</p>
+                          <p className="text-xs text-muted-foreground">m.chen@company.com</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">Lead Developer</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">6 years</TableCell>
+                    <TableCell className="text-right">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Available</Badge>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-orange-100 text-orange-700">ER</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">Emily Rodriguez</p>
+                          <p className="text-xs text-muted-foreground">e.rodriguez@company.com</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">UX Designer</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">5 years</TableCell>
+                    <TableCell className="text-right">
+                      <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Busy</Badge>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-green-100 text-green-700">DJ</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">David Johnson</p>
+                          <p className="text-xs text-muted-foreground">d.johnson@company.com</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">DevOps Engineer</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">7 years</TableCell>
+                    <TableCell className="text-right">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Available</Badge>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-pink-100 text-pink-700">LW</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">Lisa Wang</p>
+                          <p className="text-xs text-muted-foreground">l.wang@company.com</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">QA Specialist</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">4 years</TableCell>
+                    <TableCell className="text-right">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Available</Badge>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -42,10 +43,12 @@ export default function CreateQuotePage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [currentResponse, setCurrentResponse] = useState("")
   const [currentToolStatuses, setCurrentToolStatuses] = useState<ToolStatus[]>([])
+  const [approvingQuotes, setApprovingQuotes] = useState<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const websocketRef = useRef<WebSocket | null>(null)
   const clientIdRef = useRef(crypto.randomUUID())
+  const router = useRouter()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -349,11 +352,91 @@ export default function CreateQuotePage() {
   }
 
   const handleFileClick = (filePath: string) => {
-    // Navigate to the file path (you can customize this behavior)
-    console.log("Opening file:", filePath)
-    // You could implement actual file opening/downloading logic here
-    // For now, we'll just show an alert
-    alert(`File location: ${filePath}`)
+    console.log("Downloading file:", filePath)
+    
+    // Check if it's a real URL (from Supabase) or a mock path
+    if (filePath.startsWith('http')) {
+      // Real presigned URL - create download link with proper filename
+      const filename = filePath.split('/').pop()?.split('?')[0] || 'quote.pdf'
+      
+      const link = document.createElement('a')
+      link.href = filePath
+      link.download = filename
+      link.target = '_blank'
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      console.log(`Download initiated from URL: ${filePath}`)
+    } else {
+      // Fallback for mock paths
+      const filename = filePath.split('/').pop() || 'document.pdf'
+      
+      // Create a temporary download link (simulated download)
+      const link = document.createElement('a')
+      link.href = '#' // Mock download
+      link.download = filename
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      console.log(`Mock download initiated for: ${filename}`)
+    }
+  }
+
+  const handleApproveQuote = async (toolStatus: ToolStatus) => {
+    if (!toolStatus.file_path || !toolStatus.data) {
+      console.error("Missing required data for quote approval")
+      return
+    }
+
+    const statusId = toolStatus.id
+    setApprovingQuotes(prev => new Set(prev).add(statusId))
+
+    try {
+      // Create quote in Supabase
+      const quoteData = {
+        customer_name: toolStatus.data.customer_name || 'Unknown Customer',
+        quote_name: toolStatus.data.quote_name || 'Quote',
+        total_amount: toolStatus.data.total_amount || 0,
+        generated_order_form_url: toolStatus.file_path,
+        status: 'approved',
+        created_at: new Date().toISOString()
+      }
+
+      console.log("Creating quote with data:", quoteData)
+
+      // Make API call to create quote (you'll need to create this API endpoint)
+      const response = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(quoteData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create quote: ${response.statusText}`)
+      }
+
+      const createdQuote = await response.json()
+      console.log("Quote created successfully:", createdQuote)
+
+      // Navigate to the quote page
+      router.push(`/dashboard/quotes/${createdQuote.id}`)
+
+    } catch (error) {
+      console.error("Error approving quote:", error)
+      alert("Failed to approve quote. Please try again.")
+    } finally {
+      setApprovingQuotes(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(statusId)
+        return newSet
+      })
+    }
   }
 
   // Render messages directly; streaming updates are applied to the existing message via messageId
@@ -397,9 +480,9 @@ export default function CreateQuotePage() {
           {displayMessages.length === 0 ? (
             <div className="text-center py-12">
               <Bot className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Welcome to AI Assistant</h3>
+              <h3 className="text-lg font-medium mb-2">Welcome to Canyon AI</h3>
               <p className="text-muted-foreground">
-                Start a conversation by typing a message below.
+                Chat with the AI assistant to generate a quote.
               </p>
             </div>
           ) : (
@@ -461,48 +544,72 @@ export default function CreateQuotePage() {
                         >
                           {status.completed ? (
                             status.status === "Error" ? (
-                              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                              <>
+                                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                                    {status.status}
+                                  </p>
+                                  <p className="text-xs text-red-600 dark:text-red-400">
+                                    {status.message}
+                                  </p>
+                                </div>
+                              </>
                             ) : status.file_path ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-auto p-0 hover:bg-transparent"
-                                onClick={() => handleFileClick(status.file_path!)}
-                              >
-                                <FileText className="h-4 w-4 text-green-600 hover:text-green-700 cursor-pointer" />
-                              </Button>
+                              <div className="flex flex-col items-center gap-3 w-full">
+                                <div 
+                                  className="flex flex-col items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 group"
+                                  onClick={() => handleFileClick(status.file_path!)}
+                                >
+                                  <FileText className="h-8 w-8 text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors" />
+                                  <p className="text-xs text-center text-gray-700 dark:text-gray-300 font-medium max-w-[120px] truncate">
+                                    {status.file_path.split('/').pop()}
+                                  </p>
+                                </div>
+                                {status.tool_name === 'generate_quote' && (
+                                  <Button
+                                    onClick={() => handleApproveQuote(status)}
+                                    disabled={approvingQuotes.has(status.id)}
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-xs"
+                                  >
+                                    {approvingQuotes.has(status.id) ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                        Approving...
+                                      </>
+                                    ) : (
+                                      'Approve Quote'
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             ) : (
-                              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              <>
+                                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                                    {status.status}
+                                  </p>
+                                  <p className="text-xs text-green-600 dark:text-green-400">
+                                    {status.message}
+                                  </p>
+                                </div>
+                              </>
                             )
                           ) : (
-                            <Loader2 className="h-4 w-4 text-blue-500 animate-spin flex-shrink-0" />
+                            <>
+                              <Loader2 className="h-4 w-4 text-blue-500 animate-spin flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                  {status.status}
+                                </p>
+                                <p className="text-xs text-blue-600 dark:text-blue-400">
+                                  {status.message}
+                                </p>
+                              </div>
+                            </>
                           )}
-                          
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${
-                              status.completed
-                                ? status.status === "Error"
-                                  ? "text-red-700 dark:text-red-300"
-                                  : "text-green-700 dark:text-green-300"
-                                : "text-blue-700 dark:text-blue-300"
-                            }`}>
-                              {status.status}
-                            </p>
-                            <p className={`text-xs ${
-                              status.completed
-                                ? status.status === "Error"
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-green-600 dark:text-green-400"
-                                : "text-blue-600 dark:text-blue-400"
-                            }`}>
-                              {status.message}
-                            </p>
-                            {status.file_path && status.completed && status.status !== "Error" && (
-                              <p className="text-xs text-muted-foreground mt-1 font-mono">
-                                📄 {status.file_path}
-                              </p>
-                            )}
-                          </div>
                         </div>
                       ))}
                     </div>
