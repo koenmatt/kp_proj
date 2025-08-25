@@ -1,7 +1,8 @@
 import { IconInnerShadowTop } from "@tabler/icons-react"
 import { SignupForm } from "@/components/signup-form"
+import { Suspense } from "react"
 
-export default function SignupPage() {
+function SignupContent() {
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
@@ -14,5 +15,13 @@ export default function SignupPage() {
         <SignupForm />
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupContent />
+    </Suspense>
   )
 } 
