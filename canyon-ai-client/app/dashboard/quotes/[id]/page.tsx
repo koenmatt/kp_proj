@@ -1,5 +1,14 @@
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import { getUserQuotes, type Quote } from "@/lib/supabase/quotes"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 // @ts-ignore TypeScript cache issue - file exists
 import { QuotePageClient } from "./quote-page-client"
 
@@ -24,6 +33,22 @@ export default async function QuotePage({ params }: QuotePageProps) {
 
   return (
     <div className="px-4 lg:px-6">
+      <div className="mb-6">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard/quotes">Quotes</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{quote.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      
       {/* Client Components */}
       <QuotePageClient quote={quote} />
     </div>

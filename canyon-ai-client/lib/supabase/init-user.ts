@@ -7,56 +7,56 @@ const DEFAULT_QUOTES = [
     customer_slug: 'acme-corp',
     status: 'In Progress',
     amount: '$15,000',
-    owner: 'Eddie Lake'
+    owner: 'Matt Koen'
   },
   {
     name: 'Mobile App Development',
     customer_slug: 'tech-solutions',
     status: 'Done',
     amount: '$25,000',
-    owner: 'Jamik Tashpulatov'
+    owner: 'Tomas Barreto'
   },
   {
     name: 'Database Migration',
     customer_slug: 'startup-inc',
     status: 'In Progress',
     amount: '$8,500',
-    owner: 'Eddie Lake'
+    owner: 'Joubin Mirzadegan'
   },
   {
     name: 'E-commerce Platform',
     customer_slug: 'retail-plus',
     status: 'Done',
     amount: '$32,000',
-    owner: 'Jamik Tashpulatov'
+    owner: 'Matt Koen'
   },
   {
     name: 'API Integration',
     customer_slug: 'fintech-co',
     status: 'Not Started',
     amount: '$12,000',
-    owner: 'Assign owner'
+    owner: 'Tomas Barreto'
   },
   {
     name: 'Cloud Infrastructure Setup',
     customer_slug: 'enterprise-ltd',
     status: 'In Progress',
     amount: '$18,500',
-    owner: 'Eddie Lake'
+    owner: 'Joubin Mirzadegan'
   },
   {
     name: 'Security Audit',
     customer_slug: 'healthcare-sys',
     status: 'Done',
     amount: '$9,200',
-    owner: 'Assign owner'
+    owner: 'Matt Koen'
   },
   {
     name: 'Data Analytics Dashboard',
     customer_slug: 'media-group',
     status: 'In Progress',
     amount: '$21,800',
-    owner: 'Jamik Tashpulatov'
+    owner: 'Tomas Barreto'
   }
 ]
 

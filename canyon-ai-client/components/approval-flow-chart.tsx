@@ -128,6 +128,47 @@ const StatusBadge = ({ status }: { status: ApprovalStep['status'] }) => {
   )
 }
 
+const StartNode = () => {
+  return (
+    <div className="relative border border-green-200 rounded-lg p-4 min-w-[280px] shadow-sm bg-green-50">
+      {/* Status Badge */}
+      <div className="mb-3 pt-2 flex items-center gap-2">
+        <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white h-7 text-xs font-medium">
+          <Check size={14} />
+          <span className="ml-1">Completed</span>
+        </Button>
+      </div>
+
+      {/* Title */}
+      <h3 className="font-semibold text-gray-900 mb-2 pr-4">
+        Quote Created
+      </h3>
+
+      {/* Assignee */}
+      <div className="flex items-center gap-2 mb-2">
+        <Avatar className="h-5 w-5">
+          <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
+            AE
+          </AvatarFallback>
+        </Avatar>
+        <span className="text-sm text-gray-600">Account Executive</span>
+      </div>
+
+      {/* Persona */}
+      <div className="flex items-center gap-2 mb-2 px-2 py-1 rounded-md text-blue-600 bg-blue-50">
+        <Users size={14} />
+        <span className="text-xs font-medium">Account Executive</span>
+      </div>
+
+      {/* Date */}
+      <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+        <CalendarIcon size={12} />
+        <span>Quote initiated</span>
+      </div>
+    </div>
+  )
+}
+
 const StepCard = ({ 
   step, 
   onEdit, 
@@ -596,6 +637,30 @@ export function ApprovalFlowChart({ className, quoteId }: ApprovalFlowChartProps
 
             {/* Workflow Steps */}
             <div className="flex items-start gap-4 overflow-x-auto pb-4">
+              {/* Start Node */}
+              <div className="flex items-start">
+                <div className="flex flex-col">
+                  {/* Start Node Header */}
+                  <div className="flex items-center justify-center mb-3 p-2 rounded-lg bg-green-100 border border-green-200 w-8 h-8">
+                    <div className="opacity-60" title="Quote start">
+                      <Check size={14} />
+                    </div>
+                  </div>
+
+                  {/* Start Node */}
+                  <div className="min-h-[100px]">
+                    <StartNode />
+                  </div>
+                </div>
+
+                {/* Arrow Connector to first layer */}
+                {layers.length > 0 && (
+                  <div className="flex items-center justify-center w-8 text-gray-400 mt-12">
+                    <ChevronRight size={20} />
+                  </div>
+                )}
+              </div>
+
               {layers.map((layerIndex, index) => (
                 <div key={layerIndex} className="flex items-start">
                   {/* Layer Column */}
