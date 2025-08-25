@@ -1,412 +1,440 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
-import ReactFlow, {
-  Node,
-  Edge,
-  addEdge,
-  Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
-  Connection,
-  ConnectionMode,
-  MarkerType,
-  NodeMouseHandler,
-  Handle,
-  Position,
-  EdgeMouseHandler,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+import React, { useState, useCallback } from 'react'
 import { ClientOnly } from "@/components/client-only"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Link, X } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Plus, Check, Clock, User, Calendar, ChevronRight, GripVertical, Trash2, ArrowUp, ArrowDown } from "lucide-react"
 
-// Custom Node Component with hover plus button
-function CustomNode({ data, id, selected }: { data: any, id: string, selected?: boolean }) {
-  const [isHovered, setIsHovered] = useState(false)
-
-  return (
-    <div
-      className={`relative px-4 py-2 bg-white border-2 rounded-lg transition-all ${
-        selected ? 'border-blue-500 shadow-lg' : 'border-gray-300'
-      } ${isHovered ? 'shadow-md' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 border-2 border-gray-400 bg-white hover:border-blue-500 hover:bg-blue-100" 
-      />
-      <div className="text-sm font-medium text-gray-800">{data.label}</div>
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 border-2 border-gray-400 bg-white hover:border-blue-500 hover:bg-blue-100" 
-      />
-      
-      {isHovered && (
-        <button
-          className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-          onClick={(e) => {
-            e.stopPropagation()
-            // Get the addNewNode function from the parent context
-            const event = new CustomEvent('addNodeFromPlus', { detail: { sourceNodeId: id } })
-            window.dispatchEvent(event)
-          }}
-        >
-          <Plus size={12} />
-        </button>
-      )}
-    </div>
-  )
+interface ApprovalStep {
+  id: string
+  title: string
+  assignee: string
+  assigneeAvatar?: string
+  status: 'completed' | 'ready' | 'pending' | 'overdue'
+  dueDate?: string
+  completedDate?: string
+  description?: string
+  layerIndex: number
+  positionInLayer: number
 }
 
-// Input Node Component
-function InputNode({ data, id, selected }: { data: any, id: string, selected?: boolean }) {
-  const [isHovered, setIsHovered] = useState(false)
-
-  return (
-    <div
-      className={`relative px-4 py-2 bg-green-50 border-2 rounded-lg transition-all ${
-        selected ? 'border-green-500 shadow-lg' : 'border-green-300'
-      } ${isHovered ? 'shadow-md' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="text-sm font-medium text-green-800">{data.label}</div>
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="w-3 h-3 border-2 border-green-400 bg-white hover:border-blue-500 hover:bg-blue-100" 
-      />
-      
-      {isHovered && (
-        <button
-          className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-          onClick={(e) => {
-            e.stopPropagation()
-            const event = new CustomEvent('addNodeFromPlus', { detail: { sourceNodeId: id } })
-            window.dispatchEvent(event)
-          }}
-        >
-          <Plus size={12} />
-        </button>
-      )}
-    </div>
-  )
-}
-
-// Output Node Component
-function OutputNode({ data, id, selected }: { data: any, id: string, selected?: boolean }) {
-  const [isHovered, setIsHovered] = useState(false)
-
-  return (
-    <div
-      className={`relative px-4 py-2 bg-red-50 border-2 rounded-lg transition-all ${
-        selected ? 'border-red-500 shadow-lg' : 'border-red-300'
-      } ${isHovered ? 'shadow-md' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="w-3 h-3 border-2 border-red-400 bg-white hover:border-blue-500 hover:bg-blue-100" 
-      />
-      <div className="text-sm font-medium text-red-800">{data.label}</div>
-      
-      {isHovered && (
-        <button
-          className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-          onClick={(e) => {
-            e.stopPropagation()
-            const event = new CustomEvent('addNodeFromPlus', { detail: { sourceNodeId: id } })
-            window.dispatchEvent(event)
-          }}
-        >
-          <Plus size={12} />
-        </button>
-      )}
-    </div>
-  )
-}
-
-const initialNodes: Node[] = [
+const initialSteps: ApprovalStep[] = [
   {
     id: '1',
-    position: { x: 100, y: 100 },
-    data: { label: 'Quote Created' },
-    type: 'input',
-  },
+    title: 'Quote Created',
+    assignee: 'System',
+    status: 'completed',
+    completedDate: 'Sep 10',
+    description: 'Initial quote generation',
+    layerIndex: 0,
+    positionInLayer: 0
+  }
 ]
 
-const initialEdges: Edge[] = []
+const StatusBadge = ({ status }: { status: ApprovalStep['status'] }) => {
+  const configs = {
+    completed: {
+      icon: <Check size={14} />,
+      label: 'Completed',
+      className: 'bg-green-500 hover:bg-green-600 text-white'
+    },
+    ready: {
+      icon: <Clock size={14} />,
+      label: 'Ready to start',
+      className: 'bg-yellow-500 hover:bg-yellow-600 text-white'
+    },
+    pending: {
+      icon: <Clock size={14} />,
+      label: 'Pending',
+      className: 'bg-gray-400 hover:bg-gray-500 text-white'
+    },
+    overdue: {
+      icon: <Clock size={14} />,
+      label: 'Overdue',
+      className: 'bg-red-500 hover:bg-red-600 text-white'
+    }
+  }
+
+  const config = configs[status]
+  
+  return (
+    <Button size="sm" className={`${config.className} h-7 text-xs font-medium`}>
+      {config.icon}
+      <span className="ml-1">{config.label}</span>
+    </Button>
+  )
+}
+
+const StepCard = ({ 
+  step, 
+  onEdit, 
+  onDelete,
+  onAddAbove,
+  onAddBelow,
+  isDragging,
+  dragHandleProps,
+  isLastInLayer
+}: { 
+  step: ApprovalStep
+  onEdit: () => void
+  onDelete: () => void
+  onAddAbove: () => void
+  onAddBelow: () => void
+  isDragging?: boolean
+  dragHandleProps?: any
+  isLastInLayer?: boolean
+}) => {
+  return (
+    <div className={`relative bg-white border border-gray-200 rounded-lg p-4 min-w-[280px] shadow-sm hover:shadow-md transition-all ${isDragging ? 'opacity-50 rotate-2 scale-105' : ''}`}>
+      {/* Drag Handle */}
+      <div 
+        {...dragHandleProps}
+        className="absolute top-2 left-2 cursor-grab active:cursor-grabbing opacity-30 hover:opacity-60"
+      >
+        <GripVertical size={16} />
+      </div>
+
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onDelete}
+        className="absolute top-2 right-2 h-6 w-6 p-0 opacity-30 hover:opacity-60 hover:bg-red-50 hover:text-red-600"
+      >
+        <Trash2 size={12} />
+      </Button>
+
+      {/* Add Above/Below Buttons */}
+      <div className="absolute top-2 right-10 flex gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onAddAbove}
+          title="Add parallel step above"
+          className="h-6 w-6 p-0 opacity-30 hover:opacity-60 hover:bg-blue-50 hover:text-blue-600"
+        >
+          <ArrowUp size={10} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onAddBelow}
+          title="Add parallel step below"
+          className="h-6 w-6 p-0 opacity-30 hover:opacity-60 hover:bg-blue-50 hover:text-blue-600"
+        >
+          <ArrowDown size={10} />
+        </Button>
+      </div>
+
+      {/* Status Badge */}
+      <div className="mb-3 pt-2">
+        <StatusBadge status={step.status} />
+      </div>
+
+      {/* Title */}
+      <h3 className="font-semibold text-gray-900 mb-2 pr-16" onClick={onEdit} style={{ cursor: 'pointer' }}>
+        {step.title}
+      </h3>
+
+      {/* Assignee */}
+      <div className="flex items-center gap-2 mb-2">
+        <Avatar className="h-5 w-5">
+          <AvatarImage src={step.assigneeAvatar} />
+          <AvatarFallback className="text-xs bg-gray-100">
+            {step.assignee.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <span className="text-sm text-gray-600">{step.assignee}</span>
+      </div>
+
+      {/* Date */}
+      <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+        <Calendar size={12} />
+        {step.status === 'completed' && step.completedDate && (
+          <span>Completed {step.completedDate}</span>
+        )}
+        {step.status !== 'completed' && step.dueDate && (
+          <span>Due {step.dueDate}</span>
+        )}
+        {!step.completedDate && !step.dueDate && (
+          <span>Not set</span>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      {step.status === 'ready' && (
+        <div className="flex gap-2">
+          <Button className="flex-1 bg-black hover:bg-gray-800 text-white h-8 text-xs">
+            Approve
+          </Button>
+          <Button variant="outline" size="sm" className="px-2">
+            ⋯
+          </Button>
+        </div>
+      )}
+
+      {/* Connector line for parallel steps */}
+      {!isLastInLayer && (
+        <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-px h-6 bg-gray-300"></div>
+      )}
+    </div>
+  )
+}
 
 interface ApprovalFlowChartProps {
   className?: string
 }
 
 export function ApprovalFlowChart({ className }: ApprovalFlowChartProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null)
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null)
+  const [steps, setSteps] = useState<ApprovalStep[]>(initialSteps)
+  const [selectedStep, setSelectedStep] = useState<ApprovalStep | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [nodeCounter, setNodeCounter] = useState(2) // Start from 2 since we have node 1
-  const [connectionMode, setConnectionMode] = useState(false)
-  const [pendingConnection, setPendingConnection] = useState<string | null>(null)
+  const [stepCounter, setStepCounter] = useState(2)
+  const [draggedStep, setDraggedStep] = useState<ApprovalStep | null>(null)
 
-  const onConnect = useCallback(
-    (params: Edge | Connection) => {
-      const newEdge = {
-        ...params,
-        id: `e${params.source}-${params.target}-${Date.now()}`,
-        markerEnd: { type: MarkerType.ArrowClosed },
-        style: { stroke: '#64748b', strokeWidth: 2 },
-        label: '',
+  // Group steps by layer
+  const stepsByLayer = steps.reduce((acc, step) => {
+    if (!acc[step.layerIndex]) {
+      acc[step.layerIndex] = []
+    }
+    acc[step.layerIndex].push(step)
+    return acc
+  }, {} as Record<number, ApprovalStep[]>)
+
+  // Sort each layer by position
+  Object.keys(stepsByLayer).forEach(layerKey => {
+    stepsByLayer[parseInt(layerKey)].sort((a, b) => a.positionInLayer - b.positionInLayer)
+  })
+
+  const layers = Object.keys(stepsByLayer).map(k => parseInt(k)).sort((a, b) => a - b)
+
+  const addNewStep = useCallback(() => {
+    const maxLayerIndex = Math.max(...steps.map(s => s.layerIndex))
+    const newStep: ApprovalStep = {
+      id: stepCounter.toString(),
+      title: 'New Approval Step',
+      assignee: 'Unassigned',
+      status: 'pending',
+      description: '',
+      layerIndex: maxLayerIndex + 1,
+      positionInLayer: 0
+    }
+    setSteps((prev) => [...prev, newStep])
+    setStepCounter((count) => count + 1)
+    setSelectedStep(newStep)
+    setSidebarOpen(true)
+  }, [stepCounter, steps])
+
+  const addParallelStep = useCallback((sourceStep: ApprovalStep, position: 'above' | 'below') => {
+    const layerSteps = stepsByLayer[sourceStep.layerIndex] || []
+    const newPositionInLayer = position === 'above' 
+      ? sourceStep.positionInLayer 
+      : sourceStep.positionInLayer + 1
+
+    // Shift positions of steps that need to move down
+    const updatedSteps = steps.map(step => {
+      if (step.layerIndex === sourceStep.layerIndex && step.positionInLayer >= newPositionInLayer) {
+        return { ...step, positionInLayer: step.positionInLayer + 1 }
       }
-      setEdges((eds) => addEdge(newEdge, eds))
-    },
-    [setEdges],
-  )
+      return step
+    })
 
-  const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
-    if (connectionMode) {
-      if (!pendingConnection) {
-        // First node selected - start connection
-        setPendingConnection(node.id)
-        // Highlight the node
-        setNodes((nds) =>
-          nds.map((n) => ({
-            ...n,
-            style: n.id === node.id 
-              ? { ...n.style, border: '3px solid #3b82f6' }
-              : n.style
-          }))
-        )
-      } else if (pendingConnection !== node.id) {
-        // Second node selected - complete connection
-        const newEdge: Edge = {
-          id: `e${pendingConnection}-${node.id}-${Date.now()}`,
-          source: pendingConnection,
-          target: node.id,
-          markerEnd: { type: MarkerType.ArrowClosed },
-          style: { stroke: '#64748b', strokeWidth: 2 },
-          label: '',
+    const newStep: ApprovalStep = {
+      id: stepCounter.toString(),
+      title: 'Parallel Approval',
+      assignee: 'Unassigned',
+      status: 'pending',
+      description: '',
+      layerIndex: sourceStep.layerIndex,
+      positionInLayer: newPositionInLayer
+    }
+
+    setSteps([...updatedSteps, newStep])
+    setStepCounter((count) => count + 1)
+    setSelectedStep(newStep)
+    setSidebarOpen(true)
+  }, [stepCounter, steps, stepsByLayer])
+
+  const updateStep = useCallback((stepId: string, updates: Partial<ApprovalStep>) => {
+    setSteps((prev) =>
+      prev.map((step) =>
+        step.id === stepId ? { ...step, ...updates } : step
+      )
+    )
+    if (selectedStep?.id === stepId) {
+      setSelectedStep((prev) => prev ? { ...prev, ...updates } : null)
+    }
+  }, [selectedStep])
+
+  const deleteStep = useCallback((stepId: string) => {
+    const stepToDelete = steps.find(s => s.id === stepId)
+    if (!stepToDelete) return
+
+    // Remove the step and adjust positions
+    const updatedSteps = steps
+      .filter((step) => step.id !== stepId)
+      .map(step => {
+        if (step.layerIndex === stepToDelete.layerIndex && step.positionInLayer > stepToDelete.positionInLayer) {
+          return { ...step, positionInLayer: step.positionInLayer - 1 }
         }
-        setEdges((eds) => [...eds, newEdge])
-        setPendingConnection(null)
-        // Remove highlighting
-        setNodes((nds) =>
-          nds.map((n) => ({
-            ...n,
-            style: { ...n.style, border: undefined }
-          }))
-        )
+        return step
+      })
+
+    setSteps(updatedSteps)
+    if (selectedStep?.id === stepId) {
+      setSidebarOpen(false)
+      setSelectedStep(null)
+    }
+  }, [selectedStep, steps])
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, step: ApprovalStep) => {
+    setDraggedStep(step)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/html', step.id)
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedStep(null)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, targetLayerIndex: number, position?: 'before' | 'after') => {
+    e.preventDefault()
+    if (!draggedStep) return
+
+    const targetLayer = targetLayerIndex
+    let newPosition = 0
+
+    if (position === 'after') {
+      const layerSteps = stepsByLayer[targetLayer] || []
+      newPosition = layerSteps.length
+    }
+
+    // Update the dragged step's position
+    setSteps(prev => prev.map(step => {
+      if (step.id === draggedStep.id) {
+        return {
+          ...step,
+          layerIndex: targetLayer,
+          positionInLayer: newPosition
+        }
       }
-    } else {
-      setSelectedNode(node)
-      setSelectedEdge(null)
-    }
-  }, [connectionMode, pendingConnection, setNodes, setEdges])
+      return step
+    }))
 
-  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
-    if (!connectionMode) {
-      setSelectedNode(node)
-      setSelectedEdge(null)
-      setSidebarOpen(true)
-    }
-  }, [connectionMode])
+    setDraggedStep(null)
+  }, [draggedStep, stepsByLayer])
 
-  const onEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
-    if (!connectionMode) {
-      setSelectedEdge(edge)
-      setSelectedNode(null)
-      setSidebarOpen(true)
-    }
-  }, [connectionMode])
-
-  const updateNodeLabel = useCallback((nodeId: string, newLabel: string) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, label: newLabel } }
-          : node
-      )
-    )
-  }, [setNodes])
-
-  const updateEdgeLabel = useCallback((edgeId: string, newLabel: string) => {
-    setEdges((eds) =>
-      eds.map((edge) =>
-        edge.id === edgeId
-          ? { ...edge, label: newLabel }
-          : edge
-      )
-    )
-  }, [setEdges])
-
-  const addNewNode = useCallback((sourceNodeId?: string, openSidePanel: boolean = false) => {
-    const sourceNode = sourceNodeId ? nodes.find(n => n.id === sourceNodeId) : null
-    const newNode: Node = {
-      id: nodeCounter.toString(),
-      position: sourceNode 
-        ? { x: sourceNode.position.x + 200, y: sourceNode.position.y }
-        : { x: Math.random() * 300 + 100, y: Math.random() * 300 + 100 },
-      data: { label: `New Node` },
-      type: 'custom',
-    }
-    setNodes((nds) => [...nds, newNode])
-    setNodeCounter((count) => count + 1)
-
-    // If created from a plus button, automatically connect them
-    if (sourceNodeId) {
-      const newEdge: Edge = {
-        id: `e${sourceNodeId}-${nodeCounter}`,
-        source: sourceNodeId,
-        target: nodeCounter.toString(),
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-        },
-        style: { stroke: '#64748b', strokeWidth: 2 },
-        label: '',
-      }
-      setEdges((eds) => [...eds, newEdge])
-    }
-
-    // Open side panel to configure the new node if requested
-    if (openSidePanel) {
-      setSelectedNode(newNode)
-      setSelectedEdge(null)
-      setSidebarOpen(true)
-    }
-  }, [nodes, setNodes, nodeCounter, setEdges])
-
-  const deleteNode = useCallback((nodeId: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId))
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId))
-    setSidebarOpen(false)
-    setSelectedNode(null)
-  }, [setNodes, setEdges])
-
-  const deleteEdge = useCallback((edgeId: string) => {
-    setEdges((eds) => eds.filter((edge) => edge.id !== edgeId))
-    setSidebarOpen(false)
-    setSelectedEdge(null)
-  }, [setEdges])
-
-  const toggleConnectionMode = useCallback(() => {
-    setConnectionMode(!connectionMode)
-    setPendingConnection(null)
-    // Clear any node highlighting
-    setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        style: { ...n.style, border: undefined }
-      }))
-    )
-  }, [connectionMode, setNodes])
-
-  // Listen for custom events from plus buttons
-  React.useEffect(() => {
-    const handleAddNodeFromPlus = (event: CustomEvent) => {
-      addNewNode(event.detail.sourceNodeId, true) // Open side panel for plus button clicks
-    }
-    window.addEventListener('addNodeFromPlus', handleAddNodeFromPlus as EventListener)
-    return () => {
-      window.removeEventListener('addNodeFromPlus', handleAddNodeFromPlus as EventListener)
-    }
-  }, [addNewNode])
-
-  const nodeTypes = useMemo(() => ({
-    custom: CustomNode,
-    input: InputNode,
-    output: OutputNode,
-  }), [])
+  // Calculate dynamic height based on number of layers and max steps per layer
+  const maxStepsInLayer = Math.max(...layers.map(layer => stepsByLayer[layer]?.length || 0))
+  const containerHeight = Math.max(300, layers.length * 100 + maxStepsInLayer * 50)
 
   return (
     <div className="relative">
       <ClientOnly
         fallback={
-          <div className={`w-full h-[600px] bg-background border rounded-lg flex items-center justify-center ${className}`}>
+          <div className={`w-full bg-gray-50 border rounded-lg flex items-center justify-center ${className}`} style={{ height: containerHeight }}>
             <div className="space-y-4 text-center">
-              <Skeleton className="w-full h-[500px]" />
+              <Skeleton className="w-full h-[200px]" />
               <p className="text-sm text-muted-foreground">Loading approval flow...</p>
             </div>
           </div>
         }
       >
-        <div className={`w-full h-[600px] bg-background border rounded-lg ${className}`}>
-          {/* Top Controls */}
-          <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <div 
+          className={`w-full bg-gray-50 border rounded-lg p-6 ${className}`}
+          style={{ minHeight: containerHeight }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900">Approval Workflow</h2>
             <Button
-              onClick={toggleConnectionMode}
-              size="sm"
-              variant={connectionMode ? "default" : "outline"}
-              className="shadow-lg"
-            >
-              <Link size={16} className="mr-1" />
-              {connectionMode ? 'Exit Connect' : 'Connect Mode'}
-            </Button>
-            <Button
-              onClick={() => addNewNode()}
+              onClick={addNewStep}
               size="sm"
               variant="outline"
-              className="shadow-lg"
+              className="shadow-sm"
             >
               <Plus size={16} className="mr-1" />
-              New Node
+              Add Step
             </Button>
           </div>
 
-          {connectionMode && pendingConnection && (
-            <div className="absolute top-16 right-4 z-10 bg-blue-100 border border-blue-300 rounded-lg p-2 shadow-lg">
-              <p className="text-sm text-blue-800">Click another node to connect</p>
-              <Button
-                onClick={() => {
-                  setPendingConnection(null)
-                  setNodes((nds) =>
-                    nds.map((n) => ({
-                      ...n,
-                      style: { ...n.style, border: undefined }
-                    }))
-                  )
-                }}
-                size="sm"
-                variant="ghost"
-                className="mt-1 text-blue-600 hover:text-blue-800"
-              >
-                <X size={14} className="mr-1" />
-                Cancel
-              </Button>
-            </div>
-          )}
+          {/* Workflow Steps */}
+          <div className="flex items-start gap-4 overflow-x-auto pb-4">
+            {layers.map((layerIndex, index) => (
+              <div key={layerIndex} className="flex items-center">
+                {/* Layer Column */}
+                <div 
+                  className="flex flex-col gap-3"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, layerIndex)}
+                >
+                  {stepsByLayer[layerIndex].map((step, stepIndex) => (
+                    <div
+                      key={step.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, step)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <StepCard
+                        step={step}
+                        onEdit={() => {
+                          setSelectedStep(step)
+                          setSidebarOpen(true)
+                        }}
+                        onDelete={() => deleteStep(step.id)}
+                        onAddAbove={() => addParallelStep(step, 'above')}
+                        onAddBelow={() => addParallelStep(step, 'below')}
+                        isDragging={draggedStep?.id === step.id}
+                        isLastInLayer={stepIndex === stepsByLayer[layerIndex].length - 1}
+                        dragHandleProps={{}}
+                      />
+                    </div>
+                  ))}
+                </div>
 
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onNodeDoubleClick={onNodeDoubleClick}
-            onEdgeClick={onEdgeClick}
-            connectionMode={ConnectionMode.Loose}
-            fitView
-            attributionPosition="top-right"
-            nodeTypes={nodeTypes}
-            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-            selectNodesOnDrag={false}
-          >
-            <Controls />
-            <Background variant={'dots' as any} gap={20} size={2} color="#e2e8f0" />
-          </ReactFlow>
+                {/* Arrow Connector between layers */}
+                {index < layers.length - 1 && (
+                  <div 
+                    className="flex items-center justify-center w-8 text-gray-400"
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, layerIndex, 'after')}
+                  >
+                    <ChevronRight size={20} />
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Add Step Drop Zone */}
+            <div className="flex items-center">
+              <div
+                className="min-w-[280px] h-[200px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
+                onDragOver={handleDragOver}
+                onDrop={(e) => {
+                  const maxLayer = Math.max(...layers)
+                  handleDrop(e, maxLayer + 1)
+                }}
+              >
+                <button onClick={addNewStep} className="flex flex-col items-center">
+                  <Plus size={24} className="mb-2" />
+                  <span className="text-sm font-medium">Add Step</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </ClientOnly>
 
@@ -414,79 +442,74 @@ export function ApprovalFlowChart({ className }: ApprovalFlowChartProps) {
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>{selectedNode ? 'Edit Node' : 'Edit Connection'}</SheetTitle>
+            <SheetTitle>Edit Approval Step</SheetTitle>
           </SheetHeader>
           
-          {selectedNode && (
+          {selectedStep && (
             <div className="mt-6 space-y-4">
               <div>
-                <Label htmlFor="nodeLabel">Node Label</Label>
+                <Label htmlFor="stepTitle">Step Title</Label>
                 <Input
-                  id="nodeLabel"
-                  value={selectedNode.data.label}
-                  onChange={(e) => {
-                    const newLabel = e.target.value
-                    setSelectedNode({
-                      ...selectedNode,
-                      data: { ...selectedNode.data, label: newLabel }
-                    })
-                    updateNodeLabel(selectedNode.id, newLabel)
-                  }}
+                  id="stepTitle"
+                  value={selectedStep.title}
+                  onChange={(e) => updateStep(selectedStep.id, { title: e.target.value })}
                 />
               </div>
-              <div>
-                <Label>Node ID</Label>
-                <Input value={selectedNode.id} disabled />
-              </div>
-              <div>
-                <Label>Node Type</Label>
-                <Input value={selectedNode.type || 'custom'} disabled />
-              </div>
-              <div className="pt-4">
-                <Button
-                  variant="destructive"
-                  onClick={() => deleteNode(selectedNode.id)}
-                  className="w-full"
-                >
-                  Delete Node
-                </Button>
-              </div>
-            </div>
-          )}
 
-          {selectedEdge && (
-            <div className="mt-6 space-y-4">
               <div>
-                <Label htmlFor="edgeLabel">Connection Description</Label>
+                <Label htmlFor="stepAssignee">Assignee</Label>
                 <Input
-                  id="edgeLabel"
-                  placeholder="e.g., Approved, Rejected, Next Step..."
-                  value={String(selectedEdge.label || '')}
-                  onChange={(e) => {
-                    const newLabel = e.target.value
-                    setSelectedEdge({
-                      ...selectedEdge,
-                      label: newLabel
-                    })
-                    updateEdgeLabel(selectedEdge.id, newLabel)
-                  }}
+                  id="stepAssignee"
+                  value={selectedStep.assignee}
+                  onChange={(e) => updateStep(selectedStep.id, { assignee: e.target.value })}
                 />
               </div>
+
               <div>
-                <Label>From Node</Label>
-                <Input value={selectedEdge.source} disabled />
+                <Label htmlFor="stepStatus">Status</Label>
+                <Select 
+                  value={selectedStep.status} 
+                  onValueChange={(value: ApprovalStep['status']) => updateStep(selectedStep.id, { status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="ready">Ready to start</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
               <div>
-                <Label>To Node</Label>
-                <Input value={selectedEdge.target} disabled />
+                <Label htmlFor="stepDueDate">Due Date</Label>
+                <Input
+                  id="stepDueDate"
+                  placeholder="e.g., Sep 20"
+                  value={selectedStep.dueDate || ''}
+                  onChange={(e) => updateStep(selectedStep.id, { dueDate: e.target.value })}
+                />
               </div>
+
+              <div>
+                <Label htmlFor="stepDescription">Description</Label>
+                <Input
+                  id="stepDescription"
+                  placeholder="Optional description"
+                  value={selectedStep.description || ''}
+                  onChange={(e) => updateStep(selectedStep.id, { description: e.target.value })}
+                />
+              </div>
+
               <div className="pt-4">
                 <Button
                   variant="destructive"
-                  onClick={() => deleteEdge(selectedEdge.id)}
+                  onClick={() => deleteStep(selectedStep.id)}
                   className="w-full"
                 >
-                  Delete Connection
+                  Delete Step
                 </Button>
               </div>
             </div>
