@@ -35,6 +35,32 @@ export async function getUserQuotes(): Promise<Quote[]> {
   return data || []
 }
 
+export async function createQuote(quoteData: Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner'>) {
+  const supabase = await createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const { data, error } = await supabase
+    .from('quotes')
+    .insert({
+      ...quoteData,
+      user_id: user.id,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating quote:', error)
+    throw error
+  }
+
+  return data
+}
+
 export async function updateQuote(id: number, updates: Partial<Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner' | 'current_stage'>>) {
   const supabase = await createClient()
   

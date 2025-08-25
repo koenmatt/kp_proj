@@ -618,8 +618,13 @@ export function ApprovalFlowChart({ className, quoteId }: ApprovalFlowChartProps
       }
     >
           <div 
-            className={`w-full bg-gray-50 border rounded-lg p-6 ${className}`}
-            style={{ minHeight: containerHeight }}
+            className={`w-full border rounded-lg p-6 ${className}`}
+            style={{ 
+              minHeight: containerHeight,
+              background: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+              backgroundColor: '#f9fafb'
+            }}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">

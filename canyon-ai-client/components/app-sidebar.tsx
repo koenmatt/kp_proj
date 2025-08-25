@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   IconCamera,
   IconChartBar,
+  IconClipboardCheck,
   IconDashboard,
   IconDatabase,
   IconFileAi,
@@ -13,13 +14,15 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
+  IconPlug,
+  IconPlus,
   IconReport,
   IconSearch,
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/nav-documents"
+import { NavRecentChats } from "@/components/nav-recent-chats"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -44,6 +47,21 @@ const data = {
       title: "Quotes",
       url: "/dashboard/quotes",
       icon: IconListDetails,
+    },
+    {
+      title: "Create Quote",
+      url: "/dashboard/quotes/create",
+      icon: IconPlus,
+    },
+    {
+      title: "Integrations",
+      url: "#",
+      icon: IconPlug,
+    },
+    {
+      title: "Approvals",
+      url: "#",
+      icon: IconClipboardCheck,
     },
     // {
     //   title: "Analytics",
@@ -111,6 +129,11 @@ const data = {
   ],
   navSecondary: [
     {
+      title: "Team",
+      url: "#",
+      icon: IconUsers,
+    },
+    {
       title: "Settings",
       url: "#",
       icon: IconSettings,
@@ -126,21 +149,22 @@ const data = {
       icon: IconSearch,
     },
   ],
-  documents: [
+  recentChats: [
     {
-      name: "Data Library",
+      name: "Create a quote that does automatic approval workflow",
       url: "#",
-      icon: IconDatabase,
     },
     {
-      name: "Reports",
+      name: "Help me design a customer onboarding process",
       url: "#",
-      icon: IconReport,
     },
     {
-      name: "Word Assistant",
+      name: "Generate monthly sales report template",
       url: "#",
-      icon: IconFileWord,
+    },
+    {
+      name: "Set up integration with Salesforce CRM",
+      url: "#",
     },
   ],
 }
@@ -176,7 +200,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} currentPath={currentPath} />
-        <NavDocuments items={data.documents} />
+        <NavRecentChats items={data.recentChats} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
