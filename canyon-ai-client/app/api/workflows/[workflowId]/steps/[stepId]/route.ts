@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateWorkflowStep, deleteWorkflowStep } from '@/lib/supabase/workflows'
+import { updateWorkflowStep, deleteWorkflowStep, type WorkflowStep } from '@/lib/supabase/workflows'
 
 export async function PATCH(
   request: NextRequest,
@@ -14,7 +14,7 @@ export async function PATCH(
       'title', 'assignee', 'assignee_avatar', 'status', 'due_date', 
       'completed_date', 'description', 'layer_index', 'position_in_layer', 'persona'
     ]
-    const sanitizedUpdates: any = {}
+    const sanitizedUpdates: Partial<Omit<WorkflowStep, 'id' | 'workflow_id' | 'created_at' | 'updated_at'>> = {}
     
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key)) {
@@ -40,7 +40,7 @@ export async function PATCH(
           }
         }
         
-        sanitizedUpdates[key] = value
+        (sanitizedUpdates as Record<string, unknown>)[key] = value
       }
     }
 

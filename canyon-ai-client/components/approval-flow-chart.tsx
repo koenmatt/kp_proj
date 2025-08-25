@@ -188,7 +188,7 @@ const StepCard = ({
   onAddAbove: () => void
   onAddBelow: () => void
   isDragging?: boolean
-  dragHandleProps?: any
+  dragHandleProps?: Record<string, unknown>
   isLastInLayer?: boolean
   isCurrent?: boolean
   onSetCurrent: (stepId: string | null) => void

@@ -9,7 +9,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-// @ts-ignore TypeScript cache issue - file exists
 import { QuotePageClient } from "./quote-page-client"
 
 interface QuotePageProps {

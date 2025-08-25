@@ -33,7 +33,13 @@ interface ToolStatus {
   timestamp: Date
   completed?: boolean
   file_path?: string
-  data?: any
+  data?: {
+    customer_name?: string
+    quote_name?: string
+    total_amount?: number
+    filename?: string
+    [key: string]: unknown
+  }
 }
 
 export default function CreateQuotePage() {

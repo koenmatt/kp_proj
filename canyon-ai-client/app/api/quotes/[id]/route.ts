@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateQuote } from '@/lib/supabase/quotes'
+import { updateQuote, type Quote } from '@/lib/supabase/quotes'
 
 export async function PATCH(
   request: NextRequest,
@@ -20,11 +20,11 @@ export async function PATCH(
 
     // Validate that we only allow certain fields to be updated
     const allowedFields = ['name', 'customer_slug', 'status', 'amount', 'owner', 'current_stage']
-    const sanitizedUpdates: any = {}
+    const sanitizedUpdates: Partial<Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner' | 'current_stage'>> = {}
     
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key) && typeof value === 'string') {
-        sanitizedUpdates[key] = value
+        (sanitizedUpdates as Record<string, string>)[key] = value
       }
     }
 

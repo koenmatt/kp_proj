@@ -75,7 +75,7 @@ export function InlineEditableText({
     return (
       <div className={className}>
         <input
-          ref={inputRef as any}
+          ref={inputRef}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleSave}
