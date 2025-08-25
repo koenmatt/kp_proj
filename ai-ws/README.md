@@ -43,7 +43,7 @@ A concurrent WebSocket service that streams AI responses from OpenAI's Chat Comp
 ## API Endpoints
 
 ### WebSocket
-- `ws://localhost:8000/ws/{client_id}` - WebSocket endpoint for AI chat
+- `wss://kp-proj.onrender.com/ws/{client_id}` - WebSocket endpoint for AI chat
 
 ### HTTP
 - `GET /` - Service status and active connections count
@@ -111,7 +111,7 @@ ws.onmessage = (event) => {
 
 ## Development
 
-The server runs on `http://localhost:8000` and is configured to accept connections from Next.js development server (`http://localhost:3000`).
+The server runs on `http://localhost:8000` and is configured to accept connections from Next.js development server (`http://localhost:3000`) and production app (`https://kp-proj.vercel.app`).
 
 For production, update the CORS origins in `main.py` to match your deployment URLs.
 

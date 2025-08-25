@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 
-export function LoginForm({
+export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -30,7 +30,7 @@ export function LoginForm({
     }
   }, [searchParams])
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     try {
       setError(null)
       
@@ -43,7 +43,7 @@ export function LoginForm({
       
       if (error) {
         setError(error.message)
-        console.error('Error signing in with Google:', error.message)
+        console.error('Error signing up with Google:', error.message)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -56,9 +56,9 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl">Create your account</CardTitle>
           <CardDescription>
-            Login with your Google account
+            Sign up with your Google account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,7 +73,7 @@ export function LoginForm({
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={handleGoogleSignIn}
+                  onClick={handleGoogleSignUp}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 mr-2">
                     <path
@@ -81,14 +81,14 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  Login with Google
+                  Sign up with Google
                 </Button>
               </div>
               
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <a href="/signup" className="underline underline-offset-4">
-                  Sign up
+                Already have an account?{" "}
+                <a href="/login" className="underline underline-offset-4">
+                  Sign in
                 </a>
               </div>
             </div>
@@ -101,4 +101,4 @@ export function LoginForm({
       </div>
     </div>
   )
-}
+} 

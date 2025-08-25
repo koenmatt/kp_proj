@@ -30,7 +30,7 @@ app = FastAPI(title="AI WebSocket Service", version="1.0.0")
 # CORS middleware to allow connections from the client
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Next.js default ports
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://kp-proj.vercel.app"],  # Next.js default ports + production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
