@@ -162,27 +162,11 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
   {
     accessorKey: "amount",
-    header: () => <div className="w-full text-right">Amount</div>,
+    header: () => <div className="w-full text-right">Amount ($)</div>,
     cell: ({ row }) => (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-            loading: `Saving ${row.original.name}`,
-            success: "Done",
-            error: "Error",
-          })
-        }}
-      >
-        <Label htmlFor={`${row.original.id}-amount`} className="sr-only">
-          Amount
-        </Label>
-        <Input
-          className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-          defaultValue={row.original.amount}
-          id={`${row.original.id}-amount`}
-        />
-      </form>
+      <div className="w-full text-right">
+        {row.original.amount}
+      </div>
     ),
   },
   {

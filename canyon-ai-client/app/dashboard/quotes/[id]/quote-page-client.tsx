@@ -114,7 +114,7 @@ export function QuotePageClient({ quote: initialQuote }: QuotePageClientProps) {
             Visual representation of the quote approval process
           </p>
         </div> */}
-        <ApprovalFlowChart />
+        <ApprovalFlowChart quoteId={quote.id} />
       </div>
     </div>
   )

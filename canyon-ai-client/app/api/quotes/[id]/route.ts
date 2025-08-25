@@ -19,7 +19,7 @@ export async function PATCH(
     }
 
     // Validate that we only allow certain fields to be updated
-    const allowedFields = ['name', 'customer_slug', 'status', 'amount', 'owner']
+    const allowedFields = ['name', 'customer_slug', 'status', 'amount', 'owner', 'current_stage']
     const sanitizedUpdates: any = {}
     
     for (const [key, value] of Object.entries(updates)) {

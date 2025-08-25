@@ -9,6 +9,7 @@ export interface Quote {
   status: string
   amount: string
   owner: string
+  current_stage?: string
 }
 
 export async function getUserQuotes(): Promise<Quote[]> {
@@ -34,7 +35,7 @@ export async function getUserQuotes(): Promise<Quote[]> {
   return data || []
 }
 
-export async function updateQuote(id: number, updates: Partial<Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner'>>) {
+export async function updateQuote(id: number, updates: Partial<Pick<Quote, 'name' | 'customer_slug' | 'status' | 'amount' | 'owner' | 'current_stage'>>) {
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
