@@ -174,6 +174,8 @@ Ensure all production environment variables are configured with your production 
 ## 📝 Extensions & Roadmap
 
 - [ ] **Prisma Integration**: Replace Supabase with Prisma for type-safe database queries
+- [ ] **Deny/edit pdf** Allow AI to edit PDF (deny button intead of just approve).
+- [ ] **Create Approval Workflow w AI** AI keeps asking about approval workflow, builds in realtime with the customer.
 - [ ] **Advanced Analytics**: Enhanced reporting and insights + connect to real data
 - [ ] **Multi-tenant Support**: Support for multiple organizations
 - [ ] **API Rate Limiting**: Implement request throttling + auth lol
