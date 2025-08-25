@@ -182,7 +182,7 @@ Ensure all production environment variables are configured with your production 
 
 ## 📄 License
 
-This project is mine don't steal pls.
+This code is mine don't steal pls.
 
 ---
 
