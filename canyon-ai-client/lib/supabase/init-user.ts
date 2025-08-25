@@ -101,7 +101,7 @@ export async function initializeUserData() {
       user_id: user.id  // user.id is already a UUID string, database will handle the conversion
     }))
 
-    const { data, error: insertError } = await serviceClient
+    const { data: quotesData, error: insertError } = await serviceClient
       .from('quotes')
       .insert(quotesToInsert)
       .select()
@@ -111,11 +111,33 @@ export async function initializeUserData() {
       return { success: false, error: insertError.message }
     }
 
-    console.log(`Successfully created ${data?.length || 0} default quotes for user ${user.id}`)
+    // Create workflows for each quote
+    if (quotesData && quotesData.length > 0) {
+      const workflowsToInsert = quotesData.map(quote => ({
+        quote_id: quote.id,
+        user_id: user.id,
+        name: 'Approval Workflow',
+        status: 'active'
+      }))
+
+      const { data: workflowsData, error: workflowError } = await serviceClient
+        .from('workflows')
+        .insert(workflowsToInsert)
+        .select()
+
+      if (workflowError) {
+        console.error('Error creating default workflows:', workflowError)
+        // Don't fail the whole initialization if workflows fail, quotes are still created
+      } else {
+        console.log(`Successfully created ${workflowsData?.length || 0} workflows for quotes`)
+      }
+    }
+
+    console.log(`Successfully created ${quotesData?.length || 0} default quotes for user ${user.id}`)
     return { 
       success: true, 
-      message: `Created ${data?.length || 0} default quotes`,
-      data 
+      message: `Created ${quotesData?.length || 0} default quotes with workflows`,
+      data: quotesData 
     }
 
   } catch (error) {

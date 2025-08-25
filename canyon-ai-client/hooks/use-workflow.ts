@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { WorkflowStep } from '@/lib/supabase/workflows'
 import { toast } from 'sonner'
 
@@ -14,16 +14,18 @@ export function useWorkflow(quoteId: number | null) {
   const [steps, setSteps] = useState<WorkflowStep[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const loadingRef = useRef(false)
 
-  // Load workflow and steps
+    // Load workflow and steps (workflow should always exist now)
   const loadWorkflow = useCallback(async () => {
-    if (!quoteId) return
+    if (!quoteId || loading || loadingRef.current) return
 
+    loadingRef.current = true
     setLoading(true)
     setError(null)
 
     try {
-      // Get or create workflow
+      // Get workflow (should always exist)
       const workflowResponse = await fetch(`/api/quotes/${quoteId}/workflow`)
       const workflowData = await workflowResponse.json()
 
@@ -33,20 +35,20 @@ export function useWorkflow(quoteId: number | null) {
 
       let currentWorkflow = workflowData.workflow
 
-      // If no workflow exists, create one
+      // If no workflow exists, try to create one (fallback for existing quotes)
       if (!currentWorkflow) {
+        console.log('No workflow found, attempting to create one...')
         const createResponse = await fetch(`/api/quotes/${quoteId}/workflow`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: 'Approval Workflow' })
         })
 
-        if (!createResponse.ok) {
-          const createData = await createResponse.json()
-          throw new Error(createData.error || 'Failed to create workflow')
+        if (createResponse.ok) {
+          currentWorkflow = await createResponse.json()
+        } else {
+          throw new Error('No workflow found for this quote and failed to create one. Please refresh the page.')
         }
-
-        currentWorkflow = await createResponse.json()
       }
 
       setWorkflow(currentWorkflow)
@@ -65,6 +67,7 @@ export function useWorkflow(quoteId: number | null) {
       console.error('Error loading workflow:', err)
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
   }, [quoteId])
 
@@ -273,10 +276,18 @@ export function useWorkflow(quoteId: number | null) {
     }
   }, [workflow, steps])
 
-  // Load workflow on mount
+  // Load workflow on mount and when quoteId changes
   useEffect(() => {
-    loadWorkflow()
-  }, [loadWorkflow])
+    // Reset state when quoteId changes
+    setWorkflow(null)
+    setSteps([])
+    setError(null)
+    loadingRef.current = false
+    
+    if (quoteId) {
+      loadWorkflow()
+    }
+  }, [quoteId]) // Remove loadWorkflow from dependencies to prevent infinite loops
 
   return {
     workflow,

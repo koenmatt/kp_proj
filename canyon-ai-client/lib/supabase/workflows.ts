@@ -96,7 +96,14 @@ export async function createWorkflow(quoteId: number, name: string): Promise<Wor
     .select()
     .single()
 
+  // If insertion fails due to unique constraint, fetch the existing workflow
   if (error) {
+    if (error.code === '23505') { // Unique constraint violation
+      const existing = await getWorkflowByQuoteId(quoteId)
+      if (existing) {
+        return existing
+      }
+    }
     throw error
   }
 
