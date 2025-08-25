@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createQuote } from '@/lib/supabase/quotes'
+import { createWorkflow } from '@/lib/supabase/workflows'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +50,16 @@ export async function POST(request: NextRequest) {
     }
 
     const quote = await createQuote(quoteData)
+
+    // Create associated workflow for the quote
+    try {
+      await createWorkflow(quote.id, 'Approval Workflow')
+      console.log(`Created workflow for quote ${quote.id}`)
+    } catch (workflowError) {
+      console.error('Error creating workflow for quote:', workflowError)
+      // Don't fail the quote creation if workflow creation fails
+      // The workflow can be created later if needed
+    }
 
     return NextResponse.json(quote, { status: 201 })
   } catch (error) {

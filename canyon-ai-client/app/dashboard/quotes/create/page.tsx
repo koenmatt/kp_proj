@@ -76,7 +76,7 @@ export default function CreateQuotePage() {
   useEffect(() => {
     // Initialize WebSocket connection
     const connectWebSocket = () => {
-      const ws = new WebSocket(`ws://localhost:8000/ws/${clientIdRef.current}`)
+      const ws = new WebSocket(`wss://kp-proj.onrender.com/ws/${clientIdRef.current}`)
       
       ws.onopen = () => {
         console.log("WebSocket connected")
