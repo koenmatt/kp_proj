@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { initializeUserData } from '@/lib/supabase/init-user'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -9,7 +10,7 @@ export async function GET(request: Request) {
   
   if (!next.startsWith('/')) {
     // if "next" is not a relative URL, use the default
-    next = '/dashboard'
+    next = '/dashboard/home'
   }
 
   if (code) {
@@ -17,6 +18,19 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
+      // Initialize user data (create default quotes if they don't exist)
+      try {
+        const initResult = await initializeUserData()
+        if (initResult.success) {
+          console.log('User initialization:', initResult.message)
+        } else {
+          console.error('User initialization failed:', initResult.error)
+        }
+      } catch (error) {
+        console.error('Error during user initialization:', error)
+        // Don't block login if initialization fails
+      }
+      
       const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === 'development'
       
